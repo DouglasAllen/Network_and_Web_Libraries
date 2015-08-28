@@ -27,7 +27,25 @@ end
 # generates a path to a file on the server.
 
 def requested_file(request_line)
-  # ... implementation details to be discussed later ...
+  request_uri  = request_line.split(" ")[1]
+  path         = URI.unescape(URI(request_uri).path)
+
+  clean = []
+
+  # Split the path into components
+  parts = path.split("/")
+
+  parts.each do |part|
+    # skip any empty or current directory (".") path components
+    next if part.empty? || part == '.'
+    # If the path component goes up one directory level (".."),
+    # remove the last clean component.
+    # Otherwise, add the component to the Array of clean components
+    part == '..' ? clean.pop : clean << part
+  end
+
+  # return the web root joined to the clean path
+  File.join(WEB_ROOT, *clean)
 end
 
 # Except where noted below, the general approach of
@@ -44,7 +62,7 @@ loop do
   STDERR.puts request_line
 
   path = requested_file(request_line)
-
+  path = File.join(path, 'index.html') if File.directory?(path)
   # Make sure the file exists and is not a directory
   # before attempting to open it.
   if File.exist?(path) && !File.directory?(path)
